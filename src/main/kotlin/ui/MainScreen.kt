@@ -8,11 +8,13 @@ import androidx.compose.runtime.*
 import com.businessanalytics.data.TransportRow // ДОБАВЬ ЭТОТ ИМПОРТ
 import com.businessanalytics.data.TransportSummary
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Card
 import androidx.compose.ui.Alignment
 import com.businessanalytics.services.TransportAnalysisService
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.businessanalytics.ui.components.SidePanel
@@ -22,8 +24,14 @@ import com.businessanalytics.data.ExcelRow
 import com.businessanalytics.data.ClientSummary
 import com.businessanalytics.services.AnalysisService
 import com.businessanalytics.services.ExcelReader
+import com.businessanalytics.ui.theme.UzmkBlue
+import com.businessanalytics.ui.theme.UzmkDarkText
+import com.businessanalytics.ui.theme.UzmkGold
+import com.businessanalytics.ui.theme.UzmkGrayText
+import com.businessanalytics.ui.theme.UzmkWhite
 import java.io.File
 import java.time.LocalDateTime
+
 
 @Composable
 fun MainScreen() {
@@ -119,86 +127,148 @@ fun MainContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(32.dp)
     ) {
-        // Приветствие
+        // Заголовок - стильно без эмодзи
         Text(
-            text = "Добро пожаловать в Business Analytics!",
-            fontSize = 28.sp,
+            text = "УЗМК Аналитика",
+            fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF2C3E50),
+            color = UzmkDarkText,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-
         Text(
-            text = "Аналитика бизнес-показателей в одном месте",
+            text = "Панель управления бизнес-показателями",
             fontSize = 16.sp,
-            color = Color(0xFF7F8C8D),
+            color = UzmkGrayText,
             modifier = Modifier.padding(bottom = 40.dp)
         )
 
         if (hasData) {
-            // Если данные уже загружены
-            Column(
+            // Стильная карточка вместо зеленого блока
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFE8F5E9))
-                    .padding(24.dp)
-                    .border(2.dp, Color(0xFF4CAF50), androidx.compose.foundation.shape.RoundedCornerShape(12.dp)),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(bottom = 32.dp),
+                elevation = 8.dp,
+                backgroundColor = UzmkWhite
             ) {
-                Text(
-                    text = "✅ Данные загружены!",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2E7D32),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Text(
-                    text = "Перейдите в раздел 'Сводка' для просмотра аналитики",
-                    fontSize = 14.sp,
-                    color = Color(0xFF424242),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
+                Row(
+                    modifier = Modifier.padding(24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(UzmkGold, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "✓",
+                            color = UzmkWhite,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Данные загружены",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = UzmkDarkText
+                        )
+                        Text(
+                            text = "Перейдите в раздел «Сводка» для анализа",
+                            fontSize = 14.sp,
+                            color = UzmkGrayText
+                        )
+                    }
+                }
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
 
-        // Drag and Drop зона
-        FileDropZone(
+        // Drag and Drop зона - стильная карточка
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp),
-            onFileSelected = onFileSelected
+                .height(280.dp),
+            elevation = 8.dp,
+            backgroundColor = UzmkWhite
+        ) {
+            FileDropZone(
+                modifier = Modifier.fillMaxSize(),
+                onFileSelected = onFileSelected
+            )
+        }
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // Быстрый старт - чистые карточки
+        Text(
+            text = "Быстрый старт",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = UzmkDarkText,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Быстрый старт
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFFE3F2FD))
-                .padding(20.dp)
-                .border(1.dp, Color(0xFF90CAF9), androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            StepCard("1", "Загрузите файл", "Excel файл с данными")
+            StepCard("2", "Анализируйте", "Автоматический переход в сводку")
+            StepCard("3", "Изучайте метрики", "Детальная аналитика по разделам")
+        }
+    }
+}
+
+@Composable
+fun StepCard(number: String, title: String, description: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth() // УБРАТЬ weight и использовать fillMaxWidth
+            .padding(horizontal = 8.dp),
+        elevation = 4.dp,
+        backgroundColor = UzmkWhite
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(UzmkBlue, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = number,
+                    color = UzmkWhite,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Text(
-                text = "🚀 Быстрый старт",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1565C0),
-                modifier = Modifier.padding(bottom = 12.dp)
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = UzmkDarkText,
+                textAlign = TextAlign.Center
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StepItem("1", "Загрузите Excel файл", "Перетащите файл в зону выше")
-                StepItem("2", "Перейдите в 'Сводка'", "Автоматический переход после загрузки")
-                StepItem("3", "Анализируйте данные", "Смотрите статистику по клиентам")
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = description,
+                fontSize = 12.sp,
+                color = UzmkGrayText,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
