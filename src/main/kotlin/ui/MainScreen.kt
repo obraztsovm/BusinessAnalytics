@@ -34,7 +34,7 @@ fun MainContent(
             .padding(32.dp)
     ) {
         Text(
-            text = "УЗМК Аналитика",
+            text = "УЗСМК Аналитика",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = UzmkDarkText,
