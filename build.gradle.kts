@@ -17,7 +17,7 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.businessanalytics.MainKt"
+        mainClass = "MainKt"
     }
 }
 
