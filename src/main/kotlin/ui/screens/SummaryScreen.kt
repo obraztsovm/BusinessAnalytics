@@ -2,6 +2,8 @@ package com.businessanalytics.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,15 +28,21 @@ fun SummaryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .background(Color(0xFFF8F9FA))
     ) {
-        // Заголовок
-        Text(
-            text = "Сводка по клиентам и транспортным услугам",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 20.dp)
-        )
+        // Верхняя часть с заголовком
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Сводка по клиентам и транспортным услугам",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
+        }
 
         if (excelData == null || analysisResult == null) {
             // Нет данных
@@ -60,12 +68,35 @@ fun SummaryScreen(
                 }
             }
         } else {
-            // Показываем аналитику
-            AnalysisResults(
-                analysisResult = analysisResult,
-                transportResult = transportResult,
-                onNewFile = onNewFile
-            )
+            // Содержимое с прокруткой
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+            ) {
+                // Панель графиков
+                analysisResult.let { clients ->
+                    transportResult?.let { transport ->
+                        if (clients.isNotEmpty() && transport.isNotEmpty()) {
+                            ChartsDashboard(
+                                clientSummaries = clients,
+                                transportSummaries = transport,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 32.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Показываем аналитику
+                AnalysisResults(
+                    analysisResult = analysisResult,
+                    transportResult = transportResult,
+                    onNewFile = onNewFile,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
@@ -74,16 +105,17 @@ fun SummaryScreen(
 fun AnalysisResults(
     analysisResult: List<ClientSummary>,
     transportResult: List<TransportSummary>?,
-    onNewFile: () -> Unit
+    onNewFile: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     println("🔍 AnalysisResults вызван: клиентов=${analysisResult.size}, транспортных=${transportResult?.size}")
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Статистика и кнопка (без изменений)
+    Column(modifier = modifier) {
+        // Статистика и кнопка
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
+                .padding(bottom = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -96,13 +128,13 @@ fun AnalysisResults(
             }
         }
 
-        // ПЕРВАЯ ТАБЛИЦА КЛИЕНТОВ С ВЕСОМ
-        Column(modifier = Modifier.weight(1f)) {
+        // ТАБЛИЦА КЛИЕНТОВ
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "📈 Аналитика по клиентам",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             if (analysisResult.isEmpty()) {
@@ -116,19 +148,26 @@ fun AnalysisResults(
                     Text("Нет данных по клиентам")
                 }
             } else {
-                SimpleTable(analysisResult = analysisResult)
+                // Исправлено: убираем modifier, так как SimpleTable его не принимает
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 300.dp, max = 500.dp)
+                ) {
+                    SimpleTable(analysisResult = analysisResult)
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // ВТОРАЯ ТАБЛИЦА ТРАНСПОРТА С ВЕСОМ
-        Column(modifier = Modifier.weight(1f)) {
+        // ТАБЛИЦА ТРАНСПОРТА
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "🚚 Транспортные услуги",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             if (transportResult.isNullOrEmpty()) {
@@ -142,8 +181,18 @@ fun AnalysisResults(
                     Text("🚛 Нет данных по транспортным услугам")
                 }
             } else {
-                TransportTable(transportResult = transportResult)
+                // Исправлено: убираем modifier, так как TransportTable его не принимает
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 300.dp, max = 500.dp)
+                ) {
+                    TransportTable(transportResult = transportResult)
+                }
             }
         }
+
+        // Отступ в конце для удобства прокрутки
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
