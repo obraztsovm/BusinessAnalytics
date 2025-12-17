@@ -19,12 +19,31 @@ class ExcelReader {
                 val sheet = workbook.getSheetAt(0)
                 println("📊 Лист: '${sheet.sheetName}', всего строк: ${sheet.lastRowNum + 1}")
 
-                // Пропускаем заголовок и читаем данные
-                for (i in 1..sheet.lastRowNum) {
+                // ОТЛАДКА: выведем заголовки первых 5 строк для проверки
+                println("📋 Заголовки первых 5 строк (начиная с 0):")
+                for (i in 0..4) {
+                    val testRow = sheet.getRow(i)
+                    if (testRow != null) {
+                        println("  Строка $i: первые 3 ячейки: '${
+                            getCellValueAsString(testRow.getCell(0))}' | '${
+                            getCellValueAsString(testRow.getCell(1))}' | '${
+                            getCellValueAsString(testRow.getCell(2))}'")
+                    }
+                }
+
+                // ИЗМЕНЕНИЕ 1: начинаем с 4-ой строки (индекс 3, т.к. 0-based)
+                for (i in 3..sheet.lastRowNum) {
                     val row = sheet.getRow(i) ?: continue
 
                     try {
-                        // Читаем данные из нужных столбцов
+                        // ИЗМЕНЕНИЕ 2: добавим отладку для первых строк
+                        if (i <= 7) { // покажем первые 5 строк данных (с 4 по 8)
+                            println("🔍 Строка ${i+1} (индекс $i): клиент='${
+                                getCellValueAsString(row.getCell(14))}', сумма=${
+                                getCellValueAsDouble(row.getCell(52))}'")
+                        }
+
+                        // Читаем данные из нужных столбцов (индексы остаются прежними)
                         val client = getCellValueAsString(row.getCell(14)) // Столбец O (индекс 14)
                         val amount = getCellValueAsDouble(row.getCell(52)) // Столбец BA (индекс 52)
                         val weight = getCellValueAsDouble(row.getCell(53)) // Столбец BB (индекс 53)
@@ -35,12 +54,12 @@ class ExcelReader {
                         }
 
                         val excelRow = ExcelRow(
-                            time = LocalDateTime.now(), // Временная заглушка для даты
+                            time = LocalDateTime.now(),
                             client = if (client.isBlank()) "Неизвестный клиент" else client,
                             shipmentAmount = amount,
                             shipmentWeight = weight,
                             paymentDate = null,
-                            paymentAmount = amount // Временно используем ту же сумму
+                            paymentAmount = amount
                         )
 
                         if (excelRow.isValid()) {
@@ -56,7 +75,7 @@ class ExcelReader {
             }
         }
 
-        println("📈 Успешно прочитано строк: ${rows.size}")
+        println("📈 Успешно прочитано строк (начиная с 4-ой): ${rows.size}")
         return rows
     }
 
@@ -69,15 +88,25 @@ class ExcelReader {
             WorkbookFactory.create(inputStream).use { workbook ->
                 val sheet = workbook.getSheetAt(0)
 
-                for (row in sheet) {
-                    if (row.rowNum == 0) continue // Пропускаем заголовок
+                // ИЗМЕНЕНИЕ: начинаем с 4-ой строки
+                for (rowNum in 3..sheet.lastRowNum) {
+                    val row = sheet.getRow(rowNum) ?: continue
+
+                    // Старая логика с for (row in sheet) и if (row.rowNum == 0) удаляется
 
                     try {
-                        val date = getCellValueAsDateTime(row.getCell(48)) // AW (0-based: 48)
-                        val company = getCellValueAsString(row.getCell(42)) // AQ (0-based: 42)
-                        val cost = getCellValueAsDouble(row.getCell(39)) // AN (0-based: 39)
-                        val weight = getCellValueAsDouble(row.getCell(9)) // J (0-based: 9)
-                        val vehicle = getCellValueAsString(row.getCell(100)) // ТС - временный индекс
+                        // ИЗМЕНЕНИЕ: добавим отладку
+                        if (rowNum <= 7) {
+                            println("🚚 Строка ${rowNum+1}: компания='${
+                                getCellValueAsString(row.getCell(42))}', стоимость=${
+                                getCellValueAsDouble(row.getCell(39))}'")
+                        }
+
+                        val date = getCellValueAsDateTime(row.getCell(48))
+                        val company = getCellValueAsString(row.getCell(42))
+                        val cost = getCellValueAsDouble(row.getCell(39))
+                        val weight = getCellValueAsDouble(row.getCell(9))
+                        val vehicle = getCellValueAsString(row.getCell(100))
 
                         // Пропускаем пустые строки
                         if (company.isBlank() && cost == 0.0 && weight == 0.0) {
@@ -85,7 +114,7 @@ class ExcelReader {
                         }
 
                         val transportRow = TransportRow(
-                            date = date ?: LocalDateTime.now(), // Если дата null, используем текущую
+                            date = date ?: LocalDateTime.now(),
                             transportCompany = company.ifBlank { "Неизвестная компания" },
                             cost = cost,
                             weight = weight,
@@ -95,17 +124,17 @@ class ExcelReader {
                         if (transportRow.isValid()) {
                             rows.add(transportRow)
                             if (rows.size <= 3) {
-                                println("✅ Добавлена транспортная строка ${row.rowNum + 1}: '$company' - $cost руб, $weight т")
+                                println("✅ Добавлена транспортная строка ${rowNum + 1}: '$company' - $cost руб, $weight т")
                             }
                         }
                     } catch (e: Exception) {
-                        println("❌ Ошибка в транспортной строке ${row.rowNum + 1}: ${e.message}")
+                        println("❌ Ошибка в транспортной строке ${rowNum + 1}: ${e.message}")
                     }
                 }
             }
         }
 
-        println("📊 Успешно прочитано транспортных строк: ${rows.size}")
+        println("📊 Успешно прочитано транспортных строк (начиная с 4-ой): ${rows.size}")
         return rows
     }
 

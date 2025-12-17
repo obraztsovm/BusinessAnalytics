@@ -78,7 +78,7 @@ fun SummaryScreen(
                 analysisResult.let { clients ->
                     transportResult?.let { transport ->
                         if (clients.isNotEmpty() && transport.isNotEmpty()) {
-                            ChartsDashboard(
+                            AwesomeChartsPanel(
                                 clientSummaries = clients,
                                 transportSummaries = transport,
                                 modifier = Modifier
@@ -101,6 +101,7 @@ fun SummaryScreen(
     }
 }
 
+// ФУНКЦИЯ AnalysisResults ДОЛЖНА БЫТЬ В ЭТОМ ЖЕ ФАЙЛЕ
 @Composable
 fun AnalysisResults(
     analysisResult: List<ClientSummary>,
@@ -108,8 +109,6 @@ fun AnalysisResults(
     onNewFile: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    println("🔍 AnalysisResults вызван: клиентов=${analysisResult.size}, транспортных=${transportResult?.size}")
-
     Column(modifier = modifier) {
         // Статистика и кнопка
         Row(
@@ -148,7 +147,7 @@ fun AnalysisResults(
                     Text("Нет данных по клиентам")
                 }
             } else {
-                // Исправлено: убираем modifier, так как SimpleTable его не принимает
+                // Обертка для таблицы с фиксированной высотой
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -181,7 +180,7 @@ fun AnalysisResults(
                     Text("🚛 Нет данных по транспортным услугам")
                 }
             } else {
-                // Исправлено: убираем modifier, так как TransportTable его не принимает
+                // Обертка для таблицы с фиксированной высотой
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
