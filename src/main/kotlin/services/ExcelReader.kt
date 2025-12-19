@@ -1,5 +1,6 @@
 package com.businessanalytics.services
 
+import com.businessanalytics.data.ContractorRow
 import com.businessanalytics.data.ExcelRow
 import com.businessanalytics.data.TransportRow
 import org.apache.poi.ss.usermodel.WorkbookFactory
@@ -135,6 +136,74 @@ class ExcelReader {
         }
 
         println("📊 Успешно прочитано транспортных строк (начиная с 4-ой): ${rows.size}")
+        return rows
+    }
+
+    fun readContractorData(file: File): List<ContractorRow> {
+        val rows = mutableListOf<ContractorRow>()
+
+        println("👷 Чтение данных по подрядчикам из файла: ${file.name}")
+
+        file.inputStream().use { inputStream ->
+            WorkbookFactory.create(inputStream).use { workbook ->
+                val sheet = workbook.getSheetAt(0)
+                println("📊 Лист: '${sheet.sheetName}', всего строк: ${sheet.lastRowNum + 1}")
+
+                // ОТЛАДКА: проверим индексы столбцов
+                if (sheet.lastRowNum >= 3) {
+                    val testRow = sheet.getRow(3)
+                    if (testRow != null) {
+                        println("🔍 Тест строки 4 (индексы столбцов 0-based):")
+                        println("  BI(61?)='${getCellValueAsString(testRow.getCell(61))}' - дата/время")
+                        println("  AD(29?)='${getCellValueAsString(testRow.getCell(29))}' - подрядчик")
+                        println("  J(9?)='${getCellValueAsDouble(testRow.getCell(9))}' - вес")
+                        println("  BA(52?)='${getCellValueAsDouble(testRow.getCell(52))}' - выручка")
+                        println("  AC(28?)='${getCellValueAsDouble(testRow.getCell(28))}' - материалы")
+                        println("  BJ(61?)='${getCellValueAsDouble(testRow.getCell(61))}' - затраты на подрядчика")
+                    }
+                }
+
+                // Начинаем с 4-ой строки (индекс 3)
+                for (i in 3..sheet.lastRowNum) {
+                    val row = sheet.getRow(i) ?: continue
+
+                    try {
+                        // Читаем данные из нужных столбцов (индексы пока предположительные)
+                        val date = getCellValueAsDateTime(row.getCell(61)) // Столбец BI (0-based: 61?)
+                        val contractor = getCellValueAsString(row.getCell(29)) // Столбец AD (0-based: 29?)
+                        val weight = getCellValueAsDouble(row.getCell(9)) // Столбец J (0-based: 9)
+                        val revenue = getCellValueAsDouble(row.getCell(52)) // Столбец BA (0-based: 52)
+                        val materials = getCellValueAsDouble(row.getCell(28)) // Столбец AC (0-based: 28)
+                        val contractorCost = getCellValueAsDouble(row.getCell(61)) // Столбец BJ (0-based: 61?)
+
+                        // Пропускаем пустые строки
+                        if (contractor.isBlank() && weight == 0.0 && revenue == 0.0) {
+                            continue
+                        }
+
+                        val contractorRow = ContractorRow(
+                            date = date ?: LocalDateTime.now(),
+                            contractor = if (contractor.isBlank()) "Неизвестный подрядчик" else contractor,
+                            weight = weight,
+                            revenue = revenue,
+                            materialsCost = materials,
+                            contractorCost = contractorCost
+                        )
+
+                        if (contractorRow.isValid()) {
+                            rows.add(contractorRow)
+                            if (rows.size <= 3) {
+                                println("✅ Добавлена строка подрядчика ${i + 1}: '$contractor' - $weight т, $revenue руб")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("❌ Ошибка в строке подрядчика ${i + 1}: ${e.message}")
+                    }
+                }
+            }
+        }
+
+        println("📈 Успешно прочитано строк подрядчиков: ${rows.size}")
         return rows
     }
 

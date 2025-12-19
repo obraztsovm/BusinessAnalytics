@@ -18,6 +18,7 @@ import com.businessanalytics.data.*
 import com.businessanalytics.services.*
 import com.businessanalytics.ui.components.FileDropZone
 import com.businessanalytics.ui.components.SidePanel
+import com.businessanalytics.ui.screens.ContractorsScreen
 import com.businessanalytics.ui.screens.SummaryScreen
 import com.businessanalytics.ui.theme.*
 import java.io.File
@@ -197,9 +198,16 @@ fun MainScreen() {
     var transportData by remember { mutableStateOf<List<TransportRow>?>(null) }
     var transportResult by remember { mutableStateOf<List<TransportSummary>?>(null) }
 
+    // ДОБАВЛЯЕМ ДАННЫЕ ПОДРЯДЧИКОВ
+    var contractorData by remember { mutableStateOf<List<ContractorRow>?>(null) }
+    var contractorResult by remember { mutableStateOf<List<ContractorSummary>?>(null) }
+
     val analysisService = remember { AnalysisService() }
     val transportAnalysisService = remember { TransportAnalysisService() }
     val excelReader = remember { ExcelReader() }
+
+    // ДОБАВЛЯЕМ СЕРВИС ПОДРЯДЧИКОВ
+    val contractorAnalysisService = remember { ContractorAnalysisService() }
 
     Box(
         modifier = Modifier
@@ -232,22 +240,35 @@ fun MainScreen() {
                             analysisResult = null
                             transportData = null
                             transportResult = null
+                            contractorData = null // Очищаем данные подрядчиков
+                            contractorResult = null
                         }
                     )
                     "Главная" -> MainContent(
                         onFileSelected = { file ->
                             try {
+                                // 1. Читаем основные данные
                                 val data = excelReader.readExcelFile(file)
                                 excelData = data
 
+                                // 2. Читаем транспортные данные
                                 val transportDataRead = excelReader.readTransportData(file)
                                 transportData = transportDataRead
 
+                                // 3. Читаем данные подрядчиков (НОВОЕ)
+                                val contractorDataRead = excelReader.readContractorData(file)
+                                contractorData = contractorDataRead
+                                println("👷 Прочитано данных подрядчиков: ${contractorDataRead.size} строк")
+
+                                // 4. Анализируем данные
                                 val endDate = LocalDateTime.now()
                                 val startDate = endDate.minusDays(30)
+
+                                // Анализ клиентов
                                 val result = analysisService.analyzeClientData(data, startDate, endDate)
                                 analysisResult = result
 
+                                // Анализ транспорта
                                 val transportResultAnalyzed = transportAnalysisService.analyzeTransportData(
                                     transportDataRead,
                                     startDate,
@@ -255,8 +276,21 @@ fun MainScreen() {
                                 )
                                 transportResult = transportResultAnalyzed
 
+                                // Анализ подрядчиков (НОВОЕ)
+                                val contractorResultAnalyzed = contractorAnalysisService.analyzeContractors(
+                                    contractorDataRead,
+                                    startDate,
+                                    endDate
+                                )
+                                contractorResult = contractorResultAnalyzed
+                                println("👷 Проанализировано подрядчиков: ${contractorResultAnalyzed.size}")
+
+                                // Логи
+                                println("==================================")
                                 println("✅ Основные данные: ${result.size} клиентов")
                                 println("✅ Транспортные данные: ${transportResultAnalyzed.size} компаний")
+                                println("✅ Данные подрядчиков: ${contractorResultAnalyzed.size} подрядчиков")
+                                println("==================================")
 
                                 selectedScreen = "Сводка"
                             } catch (e: Exception) {
@@ -265,6 +299,19 @@ fun MainScreen() {
                             }
                         },
                         hasData = excelData != null
+                    )
+                    "Подрядчики" -> ContractorsScreen( // НОВОЕ
+                        contractorData = contractorData,
+                        contractorResult = contractorResult,
+                        onNewFile = {
+                            // Очистка данных
+                            excelData = null
+                            analysisResult = null
+                            transportData = null
+                            transportResult = null
+                            contractorData = null
+                            contractorResult = null
+                        }
                     )
                     else -> DefaultContent(selectedScreen)
                 }

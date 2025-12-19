@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.businessanalytics.data.ClientSummary
+import com.businessanalytics.data.ContractorSummary
 import com.businessanalytics.data.TransportSummary
 import com.businessanalytics.ui.theme.*
 
@@ -365,6 +366,345 @@ fun ShipmentVsPaymentChart(
     }
 }
 
+// ========== КРУГОВАЯ ДИАГРАММА "ДОЛЯ В ПРИБЫЛИ" ==========
+@Composable
+fun ContractorProfitShareChart(
+    contractors: List<ContractorSummary>,
+    title: String = "💰 Доля в прибыли по подрядчикам",
+    modifier: Modifier = Modifier
+) {
+    val topContractors = contractors.take(5)
+    val othersProfit = contractors.drop(5).sumOf { it.profit }
+
+    Card(
+        modifier = modifier,
+        elevation = 8.dp,
+        backgroundColor = UzmkWhite,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = UzmkDarkText,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Box(
+                modifier = Modifier.size(180.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val center = Offset(size.width / 2, size.height / 2)
+                    val radius = size.minDimension / 2
+                    val innerRadius = radius * 0.5f
+
+                    var startAngle = -90f
+                    val totalProfit = contractors.sumOf { it.profit }
+
+                    val colors = listOf(UzmkGold, UzmkBlue, SuccessGreen, UzmkSteel, Color(0xFF9C27B0))
+
+                    // Топ-5 подрядчиков
+                    topContractors.forEachIndexed { index, contractor ->
+                        val sweepAngle = if (totalProfit > 0) {
+                            (contractor.profit / totalProfit * 360).toFloat()
+                        } else 0f
+
+                        val color = colors.getOrElse(index) { UzmkGrayText }
+
+                        drawArc(
+                            color = color,
+                            startAngle = startAngle,
+                            sweepAngle = sweepAngle,
+                            useCenter = false,
+                            topLeft = Offset(center.x - radius, center.y - radius),
+                            size = Size(radius * 2, radius * 2),
+                            style = Stroke(width = 35f, cap = StrokeCap.Round)
+                        )
+
+                        startAngle += sweepAngle
+                    }
+
+                    // Остальные подрядчики
+                    if (othersProfit > 0 && totalProfit > 0) {
+                        val sweepAngle = (othersProfit / totalProfit * 360).toFloat()
+                        drawArc(
+                            color = Color(0xFFB0BEC5),
+                            startAngle = startAngle,
+                            sweepAngle = sweepAngle,
+                            useCenter = false,
+                            topLeft = Offset(center.x - radius, center.y - radius),
+                            size = Size(radius * 2, radius * 2),
+                            style = Stroke(width = 35f, cap = StrokeCap.Round)
+                        )
+                    }
+
+                    // Центральный круг
+                    drawCircle(
+                        color = UzmkLightBg,
+                        center = center,
+                        radius = innerRadius
+                    )
+                }
+
+                // Центральный текст
+                if (topContractors.isNotEmpty() && contractors.sumOf { it.profit } > 0) {
+                    val topShare = (topContractors.first().profit / contractors.sumOf { it.profit } * 100).toInt()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "$topShare%",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = UzmkDarkText
+                        )
+                        Text(
+                            text = "лидер",
+                            fontSize = 10.sp,
+                            color = UzmkGrayText
+                        )
+                    }
+                }
+            }
+
+            // Легенда
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                topContractors.forEachIndexed { index, contractor ->
+                    val color = listOf(UzmkGold, UzmkBlue, SuccessGreen, UzmkSteel, Color(0xFF9C27B0))
+                        .getOrElse(index) { UzmkGrayText }
+
+                    val share = if (contractors.sumOf { it.profit } > 0)
+                        (contractor.profit / contractors.sumOf { it.profit } * 100) else 0.0
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(color, androidx.compose.foundation.shape.CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = contractor.contractor.take(12) +
+                                        if (contractor.contractor.length > 12) ".." else "",
+                                fontSize = 12.sp,
+                                color = UzmkDarkText
+                            )
+                        }
+
+                        Column(
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = "%,.0f руб".format(contractor.profit),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (contractor.profit >= 0) UzmkSteel else ErrorRed
+                            )
+                            Text(
+                                text = "%.1f%%".format(share),
+                                fontSize = 11.sp,
+                                color = UzmkGrayText
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ========== ГРАФИК "МАРЖА НА ТОННУ" ==========
+@Composable
+fun ContractorMarginChart(
+    contractors: List<ContractorSummary>,
+    title: String = "⚖️ Маржа на тонну по подрядчикам",
+    modifier: Modifier = Modifier
+) {
+    val topContractors = contractors
+        .sortedByDescending { it.marginPerTon }
+        .take(6)
+
+    val maxMargin = topContractors.maxOfOrNull { it.marginPerTon } ?: 0.0
+    val minMargin = topContractors.minOfOrNull { it.marginPerTon } ?: 0.0
+
+    Card(
+        modifier = modifier,
+        elevation = 8.dp,
+        backgroundColor = UzmkWhite,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = UzmkDarkText,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val paddingLeft = 80f
+                    val paddingRight = 20f
+                    val paddingTop = 30f
+                    val paddingBottom = 40f
+
+                    val graphWidth = size.width - paddingLeft - paddingRight
+                    val graphHeight = size.height - paddingTop - paddingBottom
+
+                    // Ось Y
+                    drawLine(
+                        color = UzmkGrayText.copy(alpha = 0.5f),
+                        start = Offset(paddingLeft, paddingTop),
+                        end = Offset(paddingLeft, paddingTop + graphHeight),
+                        strokeWidth = 1.5f
+                    )
+
+                    // Ось X
+                    drawLine(
+                        color = UzmkGrayText.copy(alpha = 0.5f),
+                        start = Offset(paddingLeft, paddingTop + graphHeight),
+                        end = Offset(paddingLeft + graphWidth, paddingTop + graphHeight),
+                        strokeWidth = 1.5f
+                    )
+
+                    // Нулевая линия (только если есть отрицательные значения)
+                    if (minMargin < 0 && maxMargin > 0) {
+                        val zeroY = paddingTop + graphHeight * (1 - (0 - minMargin) / (maxMargin - minMargin)).toFloat()
+                        drawLine(
+                            color = ErrorRed.copy(alpha = 0.3f),
+                            start = Offset(paddingLeft, zeroY),
+                            end = Offset(paddingLeft + graphWidth, zeroY),
+                            strokeWidth = 1f
+                        )
+                    }
+
+                    // Столбцы
+                    if (topContractors.isNotEmpty()) {
+                        val barWidth = graphWidth / (topContractors.size * 1.5f)
+                        val spacing = barWidth * 0.5f
+
+                        topContractors.forEachIndexed { index, contractor ->
+                            val x = paddingLeft + spacing + index * (barWidth + spacing)
+                            val marginRange = maxMargin - minMargin
+                            val barHeight = if (marginRange > 0) {
+                                graphHeight * ((contractor.marginPerTon - minMargin) / marginRange).toFloat()
+                            } else 0f
+
+                            val barY = paddingTop + graphHeight - barHeight
+                            val color = if (contractor.marginPerTon >= 0) SuccessGreen else ErrorRed
+
+                            // Столбец
+                            drawRoundRect(
+                                color = color,
+                                topLeft = Offset(x, barY),
+                                size = Size(barWidth, barHeight),
+                                cornerRadius = CornerRadius(barWidth / 4, barWidth / 4)
+                            )
+                        }
+                    }
+                }
+
+                // Подписи значений на осях
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Максимальное значение слева
+                    Text(
+                        text = "%,.0f".format(maxMargin),
+                        fontSize = 10.sp,
+                        color = UzmkGrayText,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(start = 60.dp, top = 25.dp)
+                    )
+
+                    // Минимальное значение слева
+                    Text(
+                        text = "%,.0f".format(minMargin),
+                        fontSize = 10.sp,
+                        color = UzmkGrayText,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(start = 60.dp, bottom = 35.dp)
+                    )
+                }
+            }
+
+            // Подписи подрядчиков под графиком
+            if (topContractors.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, start = 80.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    topContractors.forEach { contractor ->
+                        Text(
+                            text = contractor.contractor.takeFirstLetters(),
+                            fontSize = 10.sp,
+                            color = UzmkDarkText,
+                            modifier = Modifier.width(30.dp)
+                        )
+                    }
+                }
+            }
+
+            // Статистика по марже
+            if (contractors.isNotEmpty()) {
+                val avgMargin = contractors.map { it.marginPerTon }.average()
+                val positiveMarginCount = contractors.count { it.marginPerTon >= 0 }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem(
+                        value = "%,.0f".format(avgMargin),
+                        label = "Средняя маржа",
+                        color = if (avgMargin >= 0) SuccessGreen else ErrorRed
+                    )
+                    StatItem(
+                        value = "$positiveMarginCount/${contractors.size}",
+                        label = "Прибыльных",
+                        color = SuccessGreen
+                    )
+                    StatItem(
+                        value = "%,.0f".format(contractors.sumOf { it.profit }),
+                        label = "Общая прибыль",
+                        color = UzmkBlue
+                    )
+                }
+            }
+        }
+    }
+}
+
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 @Composable
 fun LegendItem(
@@ -434,17 +774,26 @@ fun LegendDot(
     }
 }
 
-// Функция для получения первых букв имени клиента
+// Функция для получения первых букв имени
 private fun String.takeFirstLetters(): String {
-    val words = this.split(" ", "-", "_")
+    val words = this.split(" ", "-", "_", ".", ",")
     return when {
-        words.size >= 2 -> "${words[0].first()}${words[1].first()}"
-        this.length >= 2 -> "${this[0]}${this[1]}"
-        else -> this.take(2)
-    }.uppercase()
+        words.size >= 2 -> {
+            val first = words[0].firstOrNull()?.uppercaseChar() ?: 'X'
+            val second = words[1].firstOrNull()?.uppercaseChar() ?: 'X'
+            "$first$second"
+        }
+        this.length >= 2 -> {
+            val first = this[0].uppercaseChar()
+            val second = this[1].uppercaseChar()
+            "$first$second"
+        }
+        this.isNotEmpty() -> this.take(2).uppercase()
+        else -> "XX"
+    }
 }
 
-// ========== ОБНОВЛЁННАЯ ГЛАВНАЯ ПАНЕЛЬ ==========
+// ========== ГЛАВНАЯ ПАНЕЛЬ ГРАФИКОВ ==========
 @Composable
 fun AwesomeChartsPanel(
     clientSummaries: List<ClientSummary>,
@@ -497,7 +846,42 @@ fun AwesomeChartsPanel(
     }
 }
 
-// StatItem остаётся без изменений
+// ========== ПАНЕЛЬ ГРАФИКОВ ДЛЯ ПОДРЯДЧИКОВ ==========
+@Composable
+fun ContractorChartsPanel(
+    contractors: List<ContractorSummary>,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Text(
+            text = "📊 Анализ подрядчиков",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = UzmkDarkText,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        // Первый ряд: два графика по подрядчикам
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            ContractorProfitShareChart(
+                contractors = contractors,
+                modifier = Modifier.weight(1f)
+            )
+
+            ContractorMarginChart(
+                contractors = contractors,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
 @Composable
 fun StatItem(
     value: String,
