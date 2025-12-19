@@ -145,6 +145,7 @@ fun SidePanel(
         SideBarItem("Качество", selectedScreen == "Качество", onClick = { onItemSelected("Качество") })
         SideBarItem("Закупки", selectedScreen == "Закупки", onClick = { onItemSelected("Закупки") })
         SideBarItem("Подрядчики", selectedScreen == "Подрядчики", onClick = { onItemSelected("Подрядчики") })
+        SideBarItem("Поставщики", selectedScreen == "Поставщики", onClick = { onItemSelected("Поставщики") })
     }
 }
 

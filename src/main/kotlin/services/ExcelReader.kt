@@ -2,6 +2,7 @@ package com.businessanalytics.services
 
 import com.businessanalytics.data.ContractorRow
 import com.businessanalytics.data.ExcelRow
+import com.businessanalytics.data.SupplierRow
 import com.businessanalytics.data.TransportRow
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import java.io.File
@@ -204,6 +205,62 @@ class ExcelReader {
         }
 
         println("📈 Успешно прочитано строк подрядчиков: ${rows.size}")
+        return rows
+    }
+
+    fun readSupplierData(file: File): List<SupplierRow> {
+        val rows = mutableListOf<SupplierRow>()
+
+        println("🏭 Чтение данных поставщиков из файла: ${file.name}")
+
+        file.inputStream().use { inputStream ->
+            WorkbookFactory.create(inputStream).use { workbook ->
+                val sheet = workbook.getSheetAt(0)
+                println("📊 Лист: '${sheet.sheetName}', строк: ${sheet.lastRowNum + 1}")
+
+                // Правильные индексы (0-based):
+                val dateColIndex = 26    // AA (АА)
+                val supplierColIndex = 24 // Y (У) ← ИСПРАВЛЕНО!
+                val costColIndex = 28    // AC (АС)
+
+                println("🔢 Столбцы: AA(дата)=26, Y(поставщик)=24, AC(стоимость)=28")
+
+                // Чтение данных (начиная с 4-ой строки)
+                for (i in 3..sheet.lastRowNum) {
+                    val row = sheet.getRow(i) ?: continue
+
+                    try {
+                        val date = getCellValueAsDateTime(row.getCell(dateColIndex))
+                        val supplier = getCellValueAsString(row.getCell(supplierColIndex))
+                        val cost = getCellValueAsDouble(row.getCell(costColIndex))
+
+                        // Пропускаем пустые строки
+                        if (supplier.isBlank() && cost == 0.0) {
+                            continue
+                        }
+
+                        val supplierRow = SupplierRow(
+                            date = date ?: LocalDateTime.now(),
+                            supplier = if (supplier.isBlank()) "Неизвестный поставщик" else supplier,
+                            materialCost = cost,
+                            materialWeight = 0.0
+                        )
+
+                        if (supplierRow.isValid()) {
+                            rows.add(supplierRow)
+                            // Покажем первые 3 строки для проверки
+                            if (rows.size <= 3) {
+                                println("✅ Строка ${i + 1}: '${supplier}' - $cost руб")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("⚠️ Ошибка в строке ${i + 1}: ${e.message}")
+                    }
+                }
+            }
+        }
+
+        println("📈 Прочитано строк поставщиков: ${rows.size}")
         return rows
     }
 

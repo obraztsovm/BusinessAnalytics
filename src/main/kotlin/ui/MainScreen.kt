@@ -20,6 +20,7 @@ import com.businessanalytics.ui.components.FileDropZone
 import com.businessanalytics.ui.components.SidePanel
 import com.businessanalytics.ui.screens.ContractorsScreen
 import com.businessanalytics.ui.screens.SummaryScreen
+import com.businessanalytics.ui.screens.SuppliersScreen
 import com.businessanalytics.ui.theme.*
 import java.io.File
 import java.time.LocalDateTime
@@ -197,17 +198,20 @@ fun MainScreen() {
     var analysisResult by remember { mutableStateOf<List<ClientSummary>?>(null) }
     var transportData by remember { mutableStateOf<List<TransportRow>?>(null) }
     var transportResult by remember { mutableStateOf<List<TransportSummary>?>(null) }
-
-    // ДОБАВЛЯЕМ ДАННЫЕ ПОДРЯДЧИКОВ
     var contractorData by remember { mutableStateOf<List<ContractorRow>?>(null) }
     var contractorResult by remember { mutableStateOf<List<ContractorSummary>?>(null) }
 
+    // ДОБАВЛЯЕМ ДАННЫЕ ПОСТАВЩИКОВ
+    var supplierData by remember { mutableStateOf<List<SupplierRow>?>(null) }
+    var supplierResult by remember { mutableStateOf<List<SupplierSummary>?>(null) }
+
     val analysisService = remember { AnalysisService() }
     val transportAnalysisService = remember { TransportAnalysisService() }
+    val contractorAnalysisService = remember { ContractorAnalysisService() }
     val excelReader = remember { ExcelReader() }
 
-    // ДОБАВЛЯЕМ СЕРВИС ПОДРЯДЧИКОВ
-    val contractorAnalysisService = remember { ContractorAnalysisService() }
+    // ДОБАВЛЯЕМ СЕРВИС ПОСТАВЩИКОВ
+    val supplierAnalysisService = remember { SupplierAnalysisService() }
 
     Box(
         modifier = Modifier
@@ -236,12 +240,30 @@ fun MainScreen() {
                         analysisResult = analysisResult,
                         transportResult = transportResult,
                         onNewFile = {
+                            // Очистка всех данных
                             excelData = null
                             analysisResult = null
                             transportData = null
                             transportResult = null
-                            contractorData = null // Очищаем данные подрядчиков
+                            contractorData = null
                             contractorResult = null
+                            supplierData = null // Очищаем данные поставщиков
+                            supplierResult = null
+                        }
+                    )
+                    "Поставщики" -> SuppliersScreen( // НОВЫЙ ЭКРАН
+                        supplierData = supplierData,
+                        supplierResult = supplierResult,
+                        onNewFile = {
+                            // Очистка всех данных
+                            excelData = null
+                            analysisResult = null
+                            transportData = null
+                            transportResult = null
+                            contractorData = null
+                            contractorResult = null
+                            supplierData = null
+                            supplierResult = null
                         }
                     )
                     "Главная" -> MainContent(
@@ -255,12 +277,16 @@ fun MainScreen() {
                                 val transportDataRead = excelReader.readTransportData(file)
                                 transportData = transportDataRead
 
-                                // 3. Читаем данные подрядчиков (НОВОЕ)
+                                // 3. Читаем данные подрядчиков
                                 val contractorDataRead = excelReader.readContractorData(file)
                                 contractorData = contractorDataRead
-                                println("👷 Прочитано данных подрядчиков: ${contractorDataRead.size} строк")
 
-                                // 4. Анализируем данные
+                                // 4. Читаем данные поставщиков (НОВОЕ)
+                                val supplierDataRead = excelReader.readSupplierData(file)
+                                supplierData = supplierDataRead
+                                println("🏭 Прочитано данных поставщиков: ${supplierDataRead.size} строк")
+
+                                // 5. Анализируем данные
                                 val endDate = LocalDateTime.now()
                                 val startDate = endDate.minusDays(30)
 
@@ -276,20 +302,28 @@ fun MainScreen() {
                                 )
                                 transportResult = transportResultAnalyzed
 
-                                // Анализ подрядчиков (НОВОЕ)
+                                // Анализ подрядчиков
                                 val contractorResultAnalyzed = contractorAnalysisService.analyzeContractors(
                                     contractorDataRead,
                                     startDate,
                                     endDate
                                 )
                                 contractorResult = contractorResultAnalyzed
-                                println("👷 Проанализировано подрядчиков: ${contractorResultAnalyzed.size}")
+
+                                // Анализ поставщиков (НОВОЕ)
+                                val supplierResultAnalyzed = supplierAnalysisService.analyzeSuppliers(
+                                    supplierDataRead,
+                                    startDate,
+                                    endDate
+                                )
+                                supplierResult = supplierResultAnalyzed
 
                                 // Логи
                                 println("==================================")
                                 println("✅ Основные данные: ${result.size} клиентов")
                                 println("✅ Транспортные данные: ${transportResultAnalyzed.size} компаний")
                                 println("✅ Данные подрядчиков: ${contractorResultAnalyzed.size} подрядчиков")
+                                println("✅ Данные поставщиков: ${supplierResultAnalyzed.size} поставщиков")
                                 println("==================================")
 
                                 selectedScreen = "Сводка"
@@ -299,19 +333,6 @@ fun MainScreen() {
                             }
                         },
                         hasData = excelData != null
-                    )
-                    "Подрядчики" -> ContractorsScreen( // НОВОЕ
-                        contractorData = contractorData,
-                        contractorResult = contractorResult,
-                        onNewFile = {
-                            // Очистка данных
-                            excelData = null
-                            analysisResult = null
-                            transportData = null
-                            transportResult = null
-                            contractorData = null
-                            contractorResult = null
-                        }
                     )
                     else -> DefaultContent(selectedScreen)
                 }
