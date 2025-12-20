@@ -2,6 +2,7 @@ package com.businessanalytics.services
 
 import com.businessanalytics.data.ContractorRow
 import com.businessanalytics.data.ExcelRow
+import com.businessanalytics.data.QualityControlRow
 import com.businessanalytics.data.SupplierRow
 import com.businessanalytics.data.TransportRow
 import org.apache.poi.ss.usermodel.WorkbookFactory
@@ -261,6 +262,94 @@ class ExcelReader {
         }
 
         println("📈 Прочитано строк поставщиков: ${rows.size}")
+        return rows
+    }
+
+    fun readQualityControlData(file: File): List<QualityControlRow> {
+        val rows = mutableListOf<QualityControlRow>()
+
+        println("🔬 Чтение данных контроля качества из файла: ${file.name}")
+
+        file.inputStream().use { inputStream ->
+            WorkbookFactory.create(inputStream).use { workbook ->
+                val sheet = workbook.getSheetAt(0)
+                println("📊 Лист ОТК: '${sheet.sheetName}', строк: ${sheet.lastRowNum + 1}")
+
+                // Вычисляем индексы столбцов:
+                // AW = A(0) + W(22) = 48? Нужно проверить формулу
+                // AA=26, AB=27, AC=28... AW=?
+                // AS = A(0) + S(18) = 44?
+                val checkDateColIndex = 48   // AW (предположительно)
+                val employeeColIndex = 44    // AS (предположительно)
+                val weightColIndex = 9       // J (точно)
+                val valueColIndex = 52       // BA (точно)
+
+                println("🔢 Предположительные индексы: AW(дата)=$checkDateColIndex, AS(сотрудник)=$employeeColIndex, J(вес)=9, BA(стоимость)=52")
+
+                // ПРОВЕРКА: посмотрим что в этих столбцах
+                println("🔍 Проверка первых 5 строк:")
+                for (i in 3..7) {
+                    val row = sheet.getRow(i) ?: continue
+                    val dateStr = getCellValueAsString(row.getCell(checkDateColIndex))
+                    val employee = getCellValueAsString(row.getCell(employeeColIndex))
+                    val weight = getCellValueAsDouble(row.getCell(weightColIndex))
+                    val value = getCellValueAsDouble(row.getCell(valueColIndex))
+
+                    if (employee.isNotBlank() || weight > 0 || value > 0) {
+                        println("  Строка ${i+1}: дата='$dateStr', сотрудник='$employee', вес=$weight т, стоимость=$value руб")
+                    }
+                }
+
+                // Чтение всех данных (начиная с 4-ой строки)
+                for (i in 3..sheet.lastRowNum) {
+                    val row = sheet.getRow(i) ?: continue
+
+                    try {
+                        val checkDate = getCellValueAsDateTime(row.getCell(checkDateColIndex))
+                        val employee = getCellValueAsString(row.getCell(employeeColIndex))
+                        val weight = getCellValueAsDouble(row.getCell(weightColIndex))
+                        val value = getCellValueAsDouble(row.getCell(valueColIndex))
+
+                        // Пропускаем пустые строки
+                        if (employee.isBlank() && weight == 0.0 && value == 0.0) {
+                            continue
+                        }
+
+                        val qcRow = QualityControlRow(
+                            checkDate = checkDate ?: LocalDateTime.now(),
+                            employeeName = if (employee.isBlank()) "Неизвестный сотрудник" else employee,
+                            weight = weight,
+                            value = value
+                        )
+
+                        if (qcRow.isValid()) {
+                            rows.add(qcRow)
+                            // Покажем первые 3 строки
+                            if (rows.size <= 3) {
+                                println("✅ Строка ${i + 1}: '$employee' - $weight т, $value руб")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("⚠️ Ошибка в строке ОТК ${i + 1}: ${e.message}")
+                    }
+                }
+            }
+        }
+
+        println("📈 Прочитано записей контроля качества: ${rows.size}")
+
+        // Статистика
+        if (rows.isNotEmpty()) {
+            val uniqueEmployees = rows.map { it.employeeName }.distinct()
+            val totalWeight = rows.sumOf { it.weight }
+            val totalValue = rows.sumOf { it.value }
+
+            println("📊 Статистика ОТК:")
+            println("   Уникальных сотрудников: ${uniqueEmployees.size}")
+            println("   Общий проверенный вес: $totalWeight т")
+            println("   Общая проверенная стоимость: $totalValue руб")
+        }
+
         return rows
     }
 

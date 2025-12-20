@@ -19,6 +19,7 @@ import com.businessanalytics.services.*
 import com.businessanalytics.ui.components.FileDropZone
 import com.businessanalytics.ui.components.SidePanel
 import com.businessanalytics.ui.screens.ContractorsScreen
+import com.businessanalytics.ui.screens.QualityControlScreen
 import com.businessanalytics.ui.screens.SummaryScreen
 import com.businessanalytics.ui.screens.SuppliersScreen
 import com.businessanalytics.ui.theme.*
@@ -194,24 +195,28 @@ fun DefaultContent(screenName: String) {
 @Composable
 fun MainScreen() {
     var selectedScreen by remember { mutableStateOf("Главная") }
+
+    // Существующие данные
     var excelData by remember { mutableStateOf<List<ExcelRow>?>(null) }
     var analysisResult by remember { mutableStateOf<List<ClientSummary>?>(null) }
     var transportData by remember { mutableStateOf<List<TransportRow>?>(null) }
     var transportResult by remember { mutableStateOf<List<TransportSummary>?>(null) }
     var contractorData by remember { mutableStateOf<List<ContractorRow>?>(null) }
     var contractorResult by remember { mutableStateOf<List<ContractorSummary>?>(null) }
-
-    // ДОБАВЛЯЕМ ДАННЫЕ ПОСТАВЩИКОВ
     var supplierData by remember { mutableStateOf<List<SupplierRow>?>(null) }
     var supplierResult by remember { mutableStateOf<List<SupplierSummary>?>(null) }
 
+    // НОВЫЕ ДАННЫЕ ОТК
+    var qcData by remember { mutableStateOf<List<QualityControlRow>?>(null) }
+    var qcResult by remember { mutableStateOf<List<QualityControlSummary>?>(null) }
+
+    // Сервисы
     val analysisService = remember { AnalysisService() }
     val transportAnalysisService = remember { TransportAnalysisService() }
     val contractorAnalysisService = remember { ContractorAnalysisService() }
-    val excelReader = remember { ExcelReader() }
-
-    // ДОБАВЛЯЕМ СЕРВИС ПОСТАВЩИКОВ
     val supplierAnalysisService = remember { SupplierAnalysisService() }
+    val qualityControlAnalysisService = remember { QualityControlAnalysisService() }
+    val excelReader = remember { ExcelReader() }
 
     Box(
         modifier = Modifier
@@ -239,98 +244,50 @@ fun MainScreen() {
                         excelData = excelData,
                         analysisResult = analysisResult,
                         transportResult = transportResult,
-                        onNewFile = {
-                            // Очистка всех данных
-                            excelData = null
-                            analysisResult = null
-                            transportData = null
-                            transportResult = null
-                            contractorData = null
-                            contractorResult = null
-                            supplierData = null // Очищаем данные поставщиков
-                            supplierResult = null
-                        }
+                        onNewFile = ::resetAllData
                     )
-                    "Поставщики" -> SuppliersScreen( // НОВЫЙ ЭКРАН
+                    "Подрядчики" -> ContractorsScreen(
+                        contractorData = contractorData,
+                        contractorResult = contractorResult,
+                        onNewFile = ::resetAllData
+                    )
+                    "Поставщики" -> SuppliersScreen(
                         supplierData = supplierData,
                         supplierResult = supplierResult,
-                        onNewFile = {
-                            // Очистка всех данных
-                            excelData = null
-                            analysisResult = null
-                            transportData = null
-                            transportResult = null
-                            contractorData = null
-                            contractorResult = null
-                            supplierData = null
-                            supplierResult = null
-                        }
+                        onNewFile = ::resetAllData
+                    )
+                    "Качество" -> QualityControlScreen( // НОВЫЙ ЭКРАН
+                        qcData = qcData,
+                        qcResult = qcResult,
+                        onNewFile = ::resetAllData
                     )
                     "Главная" -> MainContent(
                         onFileSelected = { file ->
-                            try {
-                                // 1. Читаем основные данные
-                                val data = excelReader.readExcelFile(file)
-                                excelData = data
-
-                                // 2. Читаем транспортные данные
-                                val transportDataRead = excelReader.readTransportData(file)
-                                transportData = transportDataRead
-
-                                // 3. Читаем данные подрядчиков
-                                val contractorDataRead = excelReader.readContractorData(file)
-                                contractorData = contractorDataRead
-
-                                // 4. Читаем данные поставщиков (НОВОЕ)
-                                val supplierDataRead = excelReader.readSupplierData(file)
-                                supplierData = supplierDataRead
-                                println("🏭 Прочитано данных поставщиков: ${supplierDataRead.size} строк")
-
-                                // 5. Анализируем данные
-                                val endDate = LocalDateTime.now()
-                                val startDate = endDate.minusDays(30)
-
-                                // Анализ клиентов
-                                val result = analysisService.analyzeClientData(data, startDate, endDate)
-                                analysisResult = result
-
-                                // Анализ транспорта
-                                val transportResultAnalyzed = transportAnalysisService.analyzeTransportData(
-                                    transportDataRead,
-                                    startDate,
-                                    endDate
-                                )
-                                transportResult = transportResultAnalyzed
-
-                                // Анализ подрядчиков
-                                val contractorResultAnalyzed = contractorAnalysisService.analyzeContractors(
-                                    contractorDataRead,
-                                    startDate,
-                                    endDate
-                                )
-                                contractorResult = contractorResultAnalyzed
-
-                                // Анализ поставщиков (НОВОЕ)
-                                val supplierResultAnalyzed = supplierAnalysisService.analyzeSuppliers(
-                                    supplierDataRead,
-                                    startDate,
-                                    endDate
-                                )
-                                supplierResult = supplierResultAnalyzed
-
-                                // Логи
-                                println("==================================")
-                                println("✅ Основные данные: ${result.size} клиентов")
-                                println("✅ Транспортные данные: ${transportResultAnalyzed.size} компаний")
-                                println("✅ Данные подрядчиков: ${contractorResultAnalyzed.size} подрядчиков")
-                                println("✅ Данные поставщиков: ${supplierResultAnalyzed.size} поставщиков")
-                                println("==================================")
-
-                                selectedScreen = "Сводка"
-                            } catch (e: Exception) {
-                                println("❌ Ошибка при загрузке файла: ${e.message}")
-                                e.printStackTrace()
-                            }
+                            loadAllData(
+                                file = file,
+                                excelReader = excelReader,
+                                analysisService = analysisService,
+                                transportAnalysisService = transportAnalysisService,
+                                contractorAnalysisService = contractorAnalysisService,
+                                supplierAnalysisService = supplierAnalysisService,
+                                qualityControlAnalysisService = qualityControlAnalysisService,
+                                onDataLoaded = {
+                                    excelData = it.excelData
+                                    analysisResult = it.analysisResult
+                                    transportData = it.transportData
+                                    transportResult = it.transportResult
+                                    contractorData = it.contractorData
+                                    contractorResult = it.contractorResult
+                                    supplierData = it.supplierData
+                                    supplierResult = it.supplierResult
+                                    qcData = it.qcData
+                                    qcResult = it.qcResult
+                                },
+                                onError = { error ->
+                                    println("❌ Ошибка загрузки: $error")
+                                }
+                            )
+                            selectedScreen = "Сводка"
                         },
                         hasData = excelData != null
                     )
@@ -354,3 +311,91 @@ fun MainScreen() {
         }
     }
 }
+
+// Функция сброса всех данных
+private fun resetAllData() {
+    // В реальном коде это будет в ViewModel
+    println("🔄 Сброс всех данных")
+}
+
+// Функция загрузки всех данных
+private fun loadAllData(
+    file: File,
+    excelReader: ExcelReader,
+    analysisService: AnalysisService,
+    transportAnalysisService: TransportAnalysisService,
+    contractorAnalysisService: ContractorAnalysisService,
+    supplierAnalysisService: SupplierAnalysisService,
+    qualityControlAnalysisService: QualityControlAnalysisService,
+    onDataLoaded: (AllData) -> Unit,
+    onError: (String) -> Unit
+) {
+    try {
+        println("📂 Начало загрузки файла: ${file.name}")
+
+        // 1. Чтение всех данных
+        val excelData = excelReader.readExcelFile(file)
+        val transportData = excelReader.readTransportData(file)
+        val contractorData = excelReader.readContractorData(file)
+        val supplierData = excelReader.readSupplierData(file)
+        val qcData = excelReader.readQualityControlData(file)
+
+        println("✅ Данные прочитаны:")
+        println("   Клиенты: ${excelData.size} строк")
+        println("   Транспорт: ${transportData.size} строк")
+        println("   Подрядчики: ${contractorData.size} строк")
+        println("   Поставщики: ${supplierData.size} строк")
+        println("   ОТК: ${qcData.size} строк")
+
+        // 2. Анализ данных
+        val endDate = LocalDateTime.now()
+        val startDate = endDate.minusDays(30)
+
+        val analysisResult = analysisService.analyzeClientData(excelData, startDate, endDate)
+        val transportResult = transportAnalysisService.analyzeTransportData(transportData, startDate, endDate)
+        val contractorResult = contractorAnalysisService.analyzeContractors(contractorData, startDate, endDate)
+        val supplierResult = supplierAnalysisService.analyzeSuppliers(supplierData, startDate, endDate)
+        val qcResult = qualityControlAnalysisService.analyzeQualityControl(qcData, startDate, endDate)
+
+        println("✅ Анализ завершен:")
+        println("   Клиентов: ${analysisResult.size}")
+        println("   Транспортных компаний: ${transportResult.size}")
+        println("   Подрядчиков: ${contractorResult.size}")
+        println("   Поставщиков: ${supplierResult.size}")
+        println("   Сотрудников ОТК: ${qcResult.size}")
+
+        // 3. Возврат результатов
+        onDataLoaded(
+            AllData(
+                excelData = excelData,
+                analysisResult = analysisResult,
+                transportData = transportData,
+                transportResult = transportResult,
+                contractorData = contractorData,
+                contractorResult = contractorResult,
+                supplierData = supplierData,
+                supplierResult = supplierResult,
+                qcData = qcData,
+                qcResult = qcResult
+            )
+        )
+
+    } catch (e: Exception) {
+        onError("Ошибка загрузки: ${e.message}")
+        e.printStackTrace()
+    }
+}
+
+// Класс для хранения всех данных
+data class AllData(
+    val excelData: List<ExcelRow>,
+    val analysisResult: List<ClientSummary>,
+    val transportData: List<TransportRow>,
+    val transportResult: List<TransportSummary>,
+    val contractorData: List<ContractorRow>,
+    val contractorResult: List<ContractorSummary>,
+    val supplierData: List<SupplierRow>,
+    val supplierResult: List<SupplierSummary>,
+    val qcData: List<QualityControlRow>,
+    val qcResult: List<QualityControlSummary>
+)
