@@ -138,12 +138,7 @@ fun SidePanel(
         // Пункты меню
         SideBarItem("Главная", selectedScreen == "Главная", onClick = { onItemSelected("Главная") })
         SideBarItem("Сводка", selectedScreen == "Сводка", onClick = { onItemSelected("Сводка") })
-        SideBarItem("Финансы", selectedScreen == "Финансы", onClick = { onItemSelected("Финансы") })
-        SideBarItem("Производство", selectedScreen == "Производство", onClick = { onItemSelected("Производство") })
-        SideBarItem("Продажи", selectedScreen == "Продажи", onClick = { onItemSelected("Продажи") })
-        SideBarItem("Логистика", selectedScreen == "Логистика", onClick = { onItemSelected("Логистика") })
         SideBarItem("Качество", selectedScreen == "Качество", onClick = { onItemSelected("Качество") })
-        SideBarItem("Закупки", selectedScreen == "Закупки", onClick = { onItemSelected("Закупки") })
         SideBarItem("Подрядчики", selectedScreen == "Подрядчики", onClick = { onItemSelected("Подрядчики") })
         SideBarItem("Поставщики", selectedScreen == "Поставщики", onClick = { onItemSelected("Поставщики") })
     }

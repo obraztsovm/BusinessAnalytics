@@ -18,7 +18,7 @@ import com.businessanalytics.data.ContractorSummary
 import com.businessanalytics.ui.theme.*
 
 @Composable
-fun ContractorsScreen2(
+fun ContractorsScreen(
     contractorData: List<ContractorRow>?,
     contractorResult: List<ContractorSummary>?,
     onNewFile: () -> Unit
