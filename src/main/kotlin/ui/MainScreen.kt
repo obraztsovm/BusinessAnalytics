@@ -18,6 +18,7 @@ import com.businessanalytics.data.*
 import com.businessanalytics.services.*
 import com.businessanalytics.ui.components.FileDropZone
 import com.businessanalytics.ui.components.SidePanel
+import com.businessanalytics.ui.components.SplashScreen
 import com.businessanalytics.ui.screens.ContractorsScreen
 import com.businessanalytics.ui.screens.QualityControlScreen
 import com.businessanalytics.ui.screens.SummaryScreen
@@ -194,6 +195,7 @@ fun DefaultContent(screenName: String) {
 
 @Composable
 fun MainScreen() {
+    var showSplash by remember { mutableStateOf(true) }
     var selectedScreen by remember { mutableStateOf("Главная") }
 
     // Существующие данные
@@ -218,97 +220,108 @@ fun MainScreen() {
     val qualityControlAnalysisService = remember { QualityControlAnalysisService() }
     val excelReader = remember { ExcelReader() }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(UzmkLightBg)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            SidePanel(
-                modifier = Modifier
-                    .width(250.dp)
-                    .fillMaxHeight(),
-                selectedScreen = selectedScreen,
-                onItemSelected = { screen -> selectedScreen = screen }
-            )
-
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Основное приложение (показывается после заставки)
+        if (!showSplash) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(UzmkLightBg)
             ) {
-                when (selectedScreen) {
-                    "Сводка" -> SummaryScreen(
-                        excelData = excelData,
-                        analysisResult = analysisResult,
-                        transportResult = transportResult,
-                        onNewFile = ::resetAllData
+                Row(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    SidePanel(
+                        modifier = Modifier
+                            .width(250.dp)
+                            .fillMaxHeight(),
+                        selectedScreen = selectedScreen,
+                        onItemSelected = { screen -> selectedScreen = screen }
                     )
-                    "Подрядчики" -> ContractorsScreen(
-                        contractorData = contractorData,
-                        contractorResult = contractorResult,
-                        onNewFile = ::resetAllData
-                    )
-                    "Поставщики" -> SuppliersScreen(
-                        supplierData = supplierData,
-                        supplierResult = supplierResult,
-                        onNewFile = ::resetAllData
-                    )
-                    "Качество" -> QualityControlScreen( // НОВЫЙ ЭКРАН
-                        qcData = qcData,
-                        qcResult = qcResult,
-                        onNewFile = ::resetAllData
-                    )
-                    "Главная" -> MainContent(
-                        onFileSelected = { file ->
-                            loadAllData(
-                                file = file,
-                                excelReader = excelReader,
-                                analysisService = analysisService,
-                                transportAnalysisService = transportAnalysisService,
-                                contractorAnalysisService = contractorAnalysisService,
-                                supplierAnalysisService = supplierAnalysisService,
-                                qualityControlAnalysisService = qualityControlAnalysisService,
-                                onDataLoaded = {
-                                    excelData = it.excelData
-                                    analysisResult = it.analysisResult
-                                    transportData = it.transportData
-                                    transportResult = it.transportResult
-                                    contractorData = it.contractorData
-                                    contractorResult = it.contractorResult
-                                    supplierData = it.supplierData
-                                    supplierResult = it.supplierResult
-                                    qcData = it.qcData
-                                    qcResult = it.qcResult
-                                },
-                                onError = { error ->
-                                    println("❌ Ошибка загрузки: $error")
-                                }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(UzmkLightBg)
+                    ) {
+                        when (selectedScreen) {
+                            "Сводка" -> SummaryScreen(
+                                excelData = excelData,
+                                analysisResult = analysisResult,
+                                transportResult = transportResult,
+                                onNewFile = ::resetAllData
                             )
-                            selectedScreen = "Сводка"
-                        },
-                        hasData = excelData != null
+                            "Подрядчики" -> ContractorsScreen(
+                                contractorData = contractorData,
+                                contractorResult = contractorResult,
+                                onNewFile = ::resetAllData
+                            )
+                            "Поставщики" -> SuppliersScreen(
+                                supplierData = supplierData,
+                                supplierResult = supplierResult,
+                                onNewFile = ::resetAllData
+                            )
+                            "Качество" -> QualityControlScreen( // НОВЫЙ ЭКРАН
+                                qcData = qcData,
+                                qcResult = qcResult,
+                                onNewFile = ::resetAllData
+                            )
+                            "Главная" -> MainContent(
+                                onFileSelected = { file ->
+                                    loadAllData(
+                                        file = file,
+                                        excelReader = excelReader,
+                                        analysisService = analysisService,
+                                        transportAnalysisService = transportAnalysisService,
+                                        contractorAnalysisService = contractorAnalysisService,
+                                        supplierAnalysisService = supplierAnalysisService,
+                                        qualityControlAnalysisService = qualityControlAnalysisService,
+                                        onDataLoaded = {
+                                            excelData = it.excelData
+                                            analysisResult = it.analysisResult
+                                            transportData = it.transportData
+                                            transportResult = it.transportResult
+                                            contractorData = it.contractorData
+                                            contractorResult = it.contractorResult
+                                            supplierData = it.supplierData
+                                            supplierResult = it.supplierResult
+                                            qcData = it.qcData
+                                            qcResult = it.qcResult
+                                        },
+                                        onError = { error ->
+                                            println("❌ Ошибка загрузки: $error")
+                                        }
+                                    )
+                                    selectedScreen = "Сводка"
+                                },
+                                hasData = excelData != null
+                            )
+                            else -> DefaultContent(selectedScreen)
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    Text(
+                        text = "by Developer",
+                        color = UzmkDarkText.copy(alpha = 0.3f),
+                        fontSize = 12.sp,
+                        fontStyle = FontStyle.Italic
                     )
-                    else -> DefaultContent(selectedScreen)
                 }
             }
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            Text(
-                text = "by Developer",
-                color = UzmkDarkText.copy(alpha = 0.3f),
-                fontSize = 12.sp,
-                fontStyle = FontStyle.Italic
-            )
-        }
+        // Заставка (показывается поверх всего)
+        SplashScreen(
+            modifier = Modifier.fillMaxSize(),
+            onAnimationComplete = { showSplash = false }
+        )
     }
 }
 
