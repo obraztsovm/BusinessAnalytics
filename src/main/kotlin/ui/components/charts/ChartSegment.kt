@@ -10,10 +10,3 @@ data class ChartSegment(
     val color: Color = UzmkBlue
 )
 
-data class BarData(
-    val label: String,
-    val value: Double,
-    val maxValue: Double,
-    val gradientStart: Color = UzmkBlue,
-    val gradientEnd: Color = UzmkGold
-)
