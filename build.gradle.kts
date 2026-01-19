@@ -20,44 +20,49 @@ compose.desktop {
         mainClass = "MainKt"
 
         nativeDistributions {
-            // Правильный синтаксис для targetFormats
+            // ПРАВИЛЬНЫЙ СИНТАКСИС для targetFormats
             targetFormats(
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe,
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi
+                // Если нужно для Mac/Linux, раскомментируй:
+                // org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
+                // org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb
             )
 
             packageName = "BusinessAnalytics"
             packageVersion = "1.0.0"
+            description = "Аналитика для УЗСМК"
+            vendor = "УЗСМК"
+            copyright = "© 2024 УЗСМК. Все права защищены."
 
-            // Включаем все модули
+            // ВКЛЮЧАЕМ JVM ВНУТРЬ УСТАНОВЩИКА
             includeAllModules = true
 
-            // Правильное объявление модулей
-            modules("java.instrument", "java.management", "java.naming", "java.sql", "java.xml")
-
-            // Альтернатива - используйте дефолтные модули
-            // Оставьте пустым для использования дефолтных
-
+            // Настройки для Windows
             windows {
-                // Сначала создайте файл icon.ico в корне проекта
+                // Создай файл icon.ico в src/main/resources/
                 // iconFile.set(project.file("src/main/resources/icon.ico"))
 
                 menu = true
-                menuGroup = "BusinessAnalytics"
-                // Генерируйте UUID здесь: https://www.uuidgenerator.net/
+                menuGroup = "Business Analytics"
                 upgradeUuid = "550e8400-e29b-41d4-a716-446655440000"
                 perUserInstall = true
-
-                // Для создания ярлыка на рабочем столе
                 shortcut = true
             }
 
             // Настройки JVM
             jvmArgs += listOf("-Xmx512m", "-Dfile.encoding=UTF-8")
+
+            // Указываем модули Java (опционально, можно закомментировать)
+            modules(
+                "java.base",
+                "java.desktop",
+                "java.sql",
+                "java.xml"
+            )
         }
     }
 }
-
 kotlin {
     jvmToolchain(17) // Используйте Java 17 для совместимости
 }

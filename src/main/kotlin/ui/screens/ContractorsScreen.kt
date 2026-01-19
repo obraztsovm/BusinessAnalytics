@@ -103,6 +103,52 @@ fun ContractorsScreen(
                     }
                 }
 
+                // ГРАФИКИ ПОДРЯДЧИКОВ - НОВЫЙ БЛОК
+                if (contractorResult.isNotEmpty()) {
+                    Text(
+                        text = "📈 Визуальная аналитика",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp, top = 16.dp)
+                    )
+
+                    // Контейнер для графиков
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        // Первый ряд: два графика по горизонтали
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            // График 1: Доля в прибыли
+                            ContractorProfitShareChart(
+                                contractors = contractorResult,
+                                title = "💰 Доля в прибыли",
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            // График 2: Маржа на тонну
+                            ContractorMarginChart(
+                                contractors = contractorResult,
+                                title = "⚖️ Маржа на тонну",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        // Примечание под графиками
+                        Text(
+                            text = "💡 Графики построены на основе данных таблицы ниже",
+                            fontSize = 12.sp,
+                            color = UzmkGrayText,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+
                 // ПРОСТАЯ ТАБЛИЦА
                 Text(
                     text = "📋 Таблица подрядчиков",
