@@ -20,3 +20,24 @@ val WarningOrange = Color(0xFFFFAA00)  // Желтый для предупреж
 // Границы
 val BorderLight = Color(0xFFEEEEEE)    // Светлая граница
 val BorderMedium = Color(0xFFE0E0E0)   // Средняя граница
+
+// ========== ДОБАВЬТЕ ЭТИ ЦВЕТА ==========
+// Цвета для графиков
+val ChartPurple = Color(0xFF9C27B0)    // Фиолетовый для графиков
+val ChartTeal = Color(0xFF009688)      // Бирюзовый для графиков
+val ChartBlueGray = Color(0xFF607D8B)  // Сине-серый для графиков
+val ChartLightGray = Color(0xFFB0BEC5) // Светло-серый для "остальных"
+val ChartDarkBlue = Color(0xFF1976D2)  // Темно-синий (альтернатива)
+val ChartLightGreen = Color(0xFF8BC34A) // Светло-зеленый
+
+// Альтернативная палитра (если нужны дополнительные цвета)
+val ChartColors = listOf(
+    UzmkGold,
+    UzmkBlue,
+    SuccessGreen,
+    UzmkSteel,
+    ChartPurple,
+    ChartTeal,
+    WarningOrange,
+    ChartBlueGray
+)

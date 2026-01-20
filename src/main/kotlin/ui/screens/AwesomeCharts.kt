@@ -3,6 +3,7 @@ package com.businessanalytics.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -13,9 +14,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.businessanalytics.ui.components.ThreeDBarChart
 import com.businessanalytics.data.ClientSummary
 import com.businessanalytics.data.ContractorSummary
 import com.businessanalytics.data.TransportSummary
@@ -28,6 +32,152 @@ fun TopClientsBarChart(
     title: String = "🏆 Топ клиентов по отгрузкам",
     modifier: Modifier = Modifier
 ) {
+    val topClients = clients
+        .sortedByDescending { it.totalShipmentAmount }
+        .take(6)
+
+    val maxAmount = topClients.maxOfOrNull { it.totalShipmentAmount } ?: 0.0
+    val colors = listOf(UzmkGold, UzmkBlue, SuccessGreen, UzmkSteel, Color(0xFF9C27B0), Color(0xFF009688))
+
+    Card(
+        modifier = modifier,
+        elevation = 8.dp,
+        backgroundColor = UzmkWhite,
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = UzmkDarkText,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val padding = 50f
+                    val graphWidth = size.width - padding * 2
+                    val graphHeight = size.height - padding * 2
+
+                    // Ось Y
+                    drawLine(
+                        color = UzmkGrayText.copy(alpha = 0.5f),
+                        start = Offset(padding, padding),
+                        end = Offset(padding, padding + graphHeight),
+                        strokeWidth = 1.5f
+                    )
+
+                    // Ось X
+                    drawLine(
+                        color = UzmkGrayText.copy(alpha = 0.5f),
+                        start = Offset(padding, padding + graphHeight),
+                        end = Offset(padding + graphWidth, padding + graphHeight),
+                        strokeWidth = 1.5f
+                    )
+
+                    if (topClients.isNotEmpty() && maxAmount > 0) {
+                        val barSpacing = graphWidth / (topClients.size * 3f)
+                        val barWidth = (graphWidth - barSpacing * (topClients.size + 1)) / topClients.size
+
+                        // Столбцы с тенями для 3D эффекта
+                        topClients.forEachIndexed { index, client ->
+                            val barHeight = (client.totalShipmentAmount / maxAmount).toFloat() * graphHeight * 0.8f
+                            val x = padding + barSpacing + index * (barWidth + barSpacing)
+                            val y = padding + graphHeight - barHeight
+
+                            val color = colors.getOrElse(index) { UzmkGrayText }
+
+                            // Тень (создает 3D эффект)
+                            drawRoundRect(
+                                color = color.copy(alpha = 0.3f),
+                                topLeft = Offset(x + 3, y + 3),
+                                size = Size(barWidth, barHeight),
+                                cornerRadius = CornerRadius(barWidth / 4, barWidth / 4)
+                            )
+
+                            // Основной столбец с градиентом
+                            drawRoundRect(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        color,
+                                        color.copy(alpha = 0.8f)
+                                    )
+                                ),
+                                topLeft = Offset(x, y),
+                                size = Size(barWidth, barHeight),
+                                cornerRadius = CornerRadius(barWidth / 4, barWidth / 4)
+                            )
+                        }
+                    }
+                }
+
+                // Подписи клиентов
+                if (topClients.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 60.dp, top = 180.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            topClients.forEach { client ->
+                                Text(
+                                    text = client.client.takeFirstLetters(),
+                                    fontSize = 10.sp,
+                                    color = UzmkDarkText,
+                                    maxLines = 1,
+                                    modifier = Modifier.width(40.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Легенда
+            if (topClients.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    topClients.forEachIndexed { index, client ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.width(50.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(colors.getOrElse(index) { UzmkGrayText })
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "#${index + 1}",
+                                fontSize = 10.sp,
+                                color = UzmkDarkText
+                            )
+                            Text(
+                                text = client.client.takeFirstLetters(),
+                                fontSize = 9.sp,
+                                color = UzmkGrayText
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ========== КРУГОВАЯ ДИАГРАММА ДЛЯ ТРАНСПОРТА ==========
@@ -37,8 +187,219 @@ fun TransportDonutChart(
     title: String = "🚚 Доли транспортных компаний",
     modifier: Modifier = Modifier
 ) {
-    // ... (весь код остаётся как был, без изменений)
-    // Оставляю тот же код круговой диаграммы транспорта
+    val topCompanies = transportCompanies
+        .sortedByDescending { it.totalWeight }
+        .take(5)
+
+    val others = transportCompanies
+        .sortedByDescending { it.totalWeight }
+        .drop(5)
+
+    val totalWeight = transportCompanies.sumOf { it.totalWeight }
+
+    Card(
+        modifier = modifier,
+        elevation = 8.dp,
+        backgroundColor = UzmkWhite,
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = UzmkDarkText,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Box(
+                modifier = Modifier.size(180.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val center = Offset(size.width / 2, size.height / 2)
+                    val radius = size.minDimension / 2
+                    val innerRadius = radius * 0.5f
+
+                    var startAngle = -90f
+
+                    val colors = listOf(
+                        UzmkGold,
+                        UzmkBlue,
+                        SuccessGreen,
+                        UzmkSteel,
+                        Color(0xFF9C27B0)
+                    )
+
+                    // Рисуем топ-5 компаний
+                    topCompanies.forEachIndexed { index, company ->
+                        val sweepAngle = if (totalWeight > 0) {
+                            (company.totalWeight / totalWeight * 360).toFloat()
+                        } else 0f
+
+                        val color = colors.getOrElse(index) { UzmkGrayText }
+
+                        drawArc(
+                            color = color,
+                            startAngle = startAngle,
+                            sweepAngle = sweepAngle,
+                            useCenter = false,
+                            topLeft = Offset(center.x - radius, center.y - radius),
+                            size = Size(radius * 2, radius * 2),
+                            style = Stroke(width = 35f, cap = StrokeCap.Round)
+                        )
+
+                        startAngle += sweepAngle
+                    }
+
+                    // Рисуем сегмент "Остальные"
+                    if (others.isNotEmpty() && totalWeight > 0) {
+                        val othersWeight = others.sumOf { it.totalWeight }
+                        val sweepAngle = (othersWeight / totalWeight * 360).toFloat()
+
+                        drawArc(
+                            color = Color(0xFFB0BEC5),
+                            startAngle = startAngle,
+                            sweepAngle = sweepAngle,
+                            useCenter = false,
+                            topLeft = Offset(center.x - radius, center.y - radius),
+                            size = Size(radius * 2, radius * 2),
+                            style = Stroke(width = 35f, cap = StrokeCap.Round)
+                        )
+                    }
+
+                    // Центральный круг
+                    drawCircle(
+                        color = UzmkLightBg,
+                        center = center,
+                        radius = innerRadius
+                    )
+                }
+
+                // Центральный текст
+                if (topCompanies.isNotEmpty() && totalWeight > 0) {
+                    val topShare = (topCompanies.first().totalWeight / totalWeight * 100).toInt()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "$topShare%",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = UzmkDarkText
+                        )
+                        Text(
+                            text = "лидер",
+                            fontSize = 10.sp,
+                            color = UzmkGrayText
+                        )
+                    }
+                }
+            }
+
+            // Легенда
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                topCompanies.forEachIndexed { index, company ->
+                    val color = listOf(UzmkGold, UzmkBlue, SuccessGreen, UzmkSteel, Color(0xFF9C27B0))
+                        .getOrElse(index) { UzmkGrayText }
+
+                    val percentage = if (totalWeight > 0)
+                        (company.totalWeight / totalWeight * 100) else 0.0
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(color, androidx.compose.foundation.shape.CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = company.transportCompany.take(15) +
+                                        if (company.transportCompany.length > 15) ".." else "",
+                                fontSize = 12.sp,
+                                color = UzmkDarkText
+                            )
+                        }
+
+                        Column(
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = "%,.0f т".format(company.totalWeight),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = UzmkSteel
+                            )
+                            Text(
+                                text = "%.1f%%".format(percentage),
+                                fontSize = 10.sp,
+                                color = UzmkGrayText
+                            )
+                        }
+                    }
+                }
+
+                if (others.isNotEmpty() && totalWeight > 0) {
+                    val othersWeight = others.sumOf { it.totalWeight }
+                    val othersPercentage = (othersWeight / totalWeight * 100)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(Color(0xFFB0BEC5),
+                                        androidx.compose.foundation.shape.CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Остальные (${others.size})",
+                                fontSize = 12.sp,
+                                color = UzmkDarkText
+                            )
+                        }
+
+                        Column(
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = "%,.0f т".format(othersWeight),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = UzmkSteel
+                            )
+                            Text(
+                                text = "%.1f%%".format(othersPercentage),
+                                fontSize = 10.sp,
+                                color = UzmkGrayText
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ========== КРУГОВАЯ ДИАГРАММА ДОЛЕЙ КЛИЕНТОВ ==========
@@ -62,7 +423,7 @@ fun ClientsShareDonutChart(
         modifier = modifier,
         elevation = 8.dp,
         backgroundColor = UzmkWhite,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -169,24 +530,87 @@ fun ClientsShareDonutChart(
                     val percentage = if (totalAmount > 0)
                         (client.totalShipmentAmount / totalAmount * 100) else 0.0
 
-                    LegendItem(
-                        label = client.client.take(12) + if (client.client.length > 12) ".." else "",
-                        value = "%,.0f руб".format(client.totalShipmentAmount),
-                        percentage = "%.1f%%".format(percentage),
-                        color = color
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(color, androidx.compose.foundation.shape.CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = client.client.take(12) + if (client.client.length > 12) ".." else "",
+                                fontSize = 12.sp,
+                                color = UzmkDarkText
+                            )
+                        }
+
+                        Column(
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = "%,.0f руб".format(client.totalShipmentAmount),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = UzmkSteel
+                            )
+                            Text(
+                                text = "%.1f%%".format(percentage),
+                                fontSize = 10.sp,
+                                color = UzmkGrayText
+                            )
+                        }
+                    }
                 }
 
                 if (others.isNotEmpty() && totalAmount > 0) {
                     val othersAmount = others.sumOf { it.totalShipmentAmount }
                     val othersPercentage = (othersAmount / totalAmount * 100)
 
-                    LegendItem(
-                        label = "Остальные (${others.size})",
-                        value = "%,.0f руб".format(othersAmount),
-                        percentage = "%.1f%%".format(othersPercentage),
-                        color = Color(0xFFB0BEC5)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(Color(0xFFB0BEC5),
+                                        androidx.compose.foundation.shape.CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Остальные (${others.size})",
+                                fontSize = 12.sp,
+                                color = UzmkDarkText
+                            )
+                        }
+
+                        Column(
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = "%,.0f руб".format(othersAmount),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = UzmkSteel
+                            )
+                            Text(
+                                text = "%.1f%%".format(othersPercentage),
+                                fontSize = 10.sp,
+                                color = UzmkGrayText
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -212,7 +636,7 @@ fun ShipmentVsPaymentChart(
         modifier = modifier,
         elevation = 8.dp,
         backgroundColor = UzmkWhite,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp)
@@ -378,7 +802,7 @@ fun ContractorProfitShareChart(
         modifier = modifier,
         elevation = 8.dp,
         backgroundColor = UzmkWhite,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -546,7 +970,7 @@ fun ContractorMarginChart(
         modifier = modifier,
         elevation = 8.dp,
         backgroundColor = UzmkWhite,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp)
@@ -810,23 +1234,40 @@ fun AwesomeChartsPanel(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // Первый ряд: два графика по клиентам
+        // ПЕРВЫЙ РЯД: 3D график + круговая диаграмма (ДОБАВИЛИ НОВЫЙ 3D ГРАФИК)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            TopClientsBarChart(
+            ThreeDBarChart(  // <-- НОВЫЙ 3D ГРАФИК (из ui/components/)
                 clients = clientSummaries,
+                title = "🏆 3D Топ клиентов",
                 modifier = Modifier.weight(1f)
             )
 
-            ClientsShareDonutChart(
+            ClientsShareDonutChart(  // <-- СУЩЕСТВУЮЩИЙ график
                 clients = clientSummaries,
                 modifier = Modifier.weight(1f)
             )
         }
 
-        // Второй ряд: два графика
+        // ВТОРОЙ РЯД: два графика (оставляем как было)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            TopClientsBarChart(  // <-- СУЩЕСТВУЮЩИЙ график (не удален!)
+                clients = clientSummaries,
+                modifier = Modifier.weight(1f)
+            )
+
+            TransportDonutChart(
+                transportCompanies = transportSummaries,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // ТРЕТИЙ РЯД: график отгрузок vs оплат
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(20.dp)
@@ -836,10 +1277,8 @@ fun AwesomeChartsPanel(
                 modifier = Modifier.weight(1f)
             )
 
-            TransportDonutChart(
-                transportCompanies = transportSummaries,
-                modifier = Modifier.weight(1f)
-            )
+            // Можно добавить еще один график здесь, если нужно
+            Box(modifier = Modifier.weight(1f))
         }
     }
 }

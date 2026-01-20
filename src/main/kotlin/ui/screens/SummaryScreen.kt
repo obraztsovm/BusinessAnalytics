@@ -33,6 +33,7 @@ fun SummaryScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(UzmkLightBg)
+            .verticalScroll(rememberScrollState())
     ) {
         // Верхняя часть с заголовком
         Column(
@@ -55,7 +56,7 @@ fun SummaryScreen(
             )
         }
 
-        if (excelData == null || analysisResult == null) {
+        if (excelData == null || analysisResult == null || transportResult == null) {
             // Нет данных
             Box(
                 modifier = Modifier
@@ -79,50 +80,57 @@ fun SummaryScreen(
                 }
             }
         } else {
-            // Содержимое с прокруткой
-            Column(
+            // 1. СНАЧАЛА ТАБЛИЦА (она должна быть ПЕРВОЙ)
+            SimpleTable(analysisResult = analysisResult)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 2. ЗАТЕМ ГРАФИКИ
+            AwesomeChartsPanel(
+                clientSummaries = analysisResult,
+                transportSummaries = transportResult,
                 modifier = Modifier
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-            ) {
-                // KPI КАРТОЧКИ
-                if (analysisResult.isNotEmpty()) {
-                    KPICards(
-                        clientSummaries = analysisResult,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 24.dp)
-                    )
-                }
+            )
 
-                // ГРАФИК ТОП КЛИЕНТОВ
-                if (analysisResult.isNotEmpty()) {
-                    ClientBarChart(
-                        clients = analysisResult,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 24.dp)
-                    )
-                }
+            Spacer(modifier = Modifier.height(24.dp))
 
-                // ГРАФИК ОТГРУЗКИ VS ОПЛАТЫ
-                if (analysisResult.isNotEmpty()) {
-                    ShipmentPaymentChart(
-                        clients = analysisResult,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 24.dp)
+            // 3. ТРАНСПОРТНАЯ ТАБЛИЦА
+            if (transportResult.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        text = "🚚 Транспортные услуги",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = UzmkDarkText,
+                        modifier = Modifier.padding(bottom = 16.dp)
                     )
-                }
 
-                // Показываем аналитику
-                AnalysisResults(
-                    analysisResult = analysisResult,
-                    transportResult = transportResult,
-                    onNewFile = onNewFile,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    // Используйте ваш TransportTable или создайте простую
+                    TransportTable(transportResult = transportResult)
+                }
             }
+
+            // 4. КНОПКА ЗАГРУЗКИ НОВОГО ФАЙЛА
+            Button(
+                onClick = onNewFile,
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = UzmkBlue,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+                Text("📁 Загрузить другой файл")
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
